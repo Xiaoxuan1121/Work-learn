@@ -1,0 +1,394 @@
+---
+title: "plots"
+author: "Xiaoxuan Liang"
+date: "21/07/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+library(zoo)
+library(reshape2)
+library(forecast)
+```
+
+
+```{r}
+Saanich <- CTD_A_1
+Saanich <-  Saanich %>% select(Date, Temperature)
+Saanich <- na.omit(Saanich)
+Saanich <- Saanich %>% mutate(date = substr(Date, 1,11))
+Saanich$date <- as.Date(Saanich$date)
+
+Saanich2 <- CTD_A_2
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_3
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_4
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_5
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_6 
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_7
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_8
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+Saanich2 <- CTD_A_9
+Saanich2 <-  Saanich2 %>% select(Date, Temperature)
+Saanich2 <- na.omit(Saanich2)
+Saanich2 <- Saanich2 %>% mutate(date = substr(Date, 1,11))
+Saanich2$date <- as.Date(Saanich2$date)
+Saanich <- Saanich %>% full_join(Saanich2)
+
+
+Saanich
+write.csv(Saanich, "Saanich.csv")
+```
+
+
+```{r}
+monthly_Saanich <- Saanich %>% mutate(monthly_dat = substr(Date, 1, 7)) %>%   group_by(monthly_dat) %>% summarize(monthly_temperature = mean(Temperature))
+monthly_Saanich %>% ungroup()
+monthly_Saanich <- monthly_Saanich %>% mutate(year = as.numeric(substr(monthly_dat, 1, 4))) %>% mutate(month = as.numeric(substr(monthly_dat, 6,7))) %>% mutate(day = 01)
+monthly_Saanich$date <- as.Date(with(monthly_Saanich, paste(year, month, day,sep="-")), "%Y-%m-%d")
+monthly_Saanich <- monthly_Saanich %>% select(date, year, month, monthly_temperature)
+
+daily_Saanich <- Saanich %>% group_by(date) %>% summarize(daily_temperature = mean(Temperature))
+daily_Saanich %>% ungroup()
+
+monthly_Saanich %>% ggplot(aes(x=date, y=monthly_temperature))+geom_line()
+daily_Saanich %>% ggplot(aes(x=date, y=daily_temperature)) + geom_line()
+
+dat <- monthly_Saanich %>% inner_join(predicted_2013_2014 %>% filter(Pressure == 100))
+dat1 <- monthly_Saanich %>% inner_join(ctd_temperature %>% filter(Pressure == 100))
+
+b <- sum((dat$monthly_temperature - dat$Temperature)^2)
+a <- sum(((dat$monthly_temperature - dat$Temperature) %>% tail(24))^2)
+c <- sum(((dat$monthly_temperature - dat$Temperature) %>% tail(12))^2)
+
+
+(a-c)/b
+
+
+```
+
+
+
+```{r}
+monthly_Saanich %>% tail()
+vtrain = monthly_Saanich$monthly_temperature[1:120]
+vholdo = monthly_Saanich$monthly_temperature[121:144]
+z=ts(vtrain,start=c(2006,2),frequency=12)
+```
+
+
+```{r}
+# simple exponential smoothing (level)
+esfit = HoltWinters(z, beta = F, gamma = F)
+print(esfit)
+pred = predict(esfit,n.ahead=24,prediction.interval=T)
+print(pred)
+
+alpha=esfit$alpha
+fc <- c()
+lev=esfit$coef
+fc[1] <- lev
+zt <- vholdo[1]
+newv <- lev
+fcerror <- zt-fc[1]
+sse <- fcerror^2
+i <- 2
+while(i<=24) {
+  newv <- alpha*vholdo[i-1]+(1-alpha)*newv
+  fc[i] <- newv
+  zt <- vholdo[i]
+  fcerror <- zt-fc[i]
+  sse <- sse+fcerror^2
+  i <- i+1
+}
+print(sse)
+outrmse <- sqrt(sse/24)
+outrmse  # 0.1425695
+
+fc
+
+```
+
+```{r}
+# Linear exponential smoothing (level + trend)
+hlfit = HoltWinters(z, gamma = F)
+print(hlfit) 
+pred=predict(hlfit,n.ahead=24,prediction.interval=T)
+print(pred)
+
+alpha=hlfit$alpha
+beta=hlfit$beta
+lev=hlfit$coef[1]
+tre=hlfit$coef[2]
+
+fc <- c()
+fc[1] <- lev+tre
+zt <- vholdo[1]
+newfc <- fc[1]
+fcerror <- zt-fc[1]
+sse <- fcerror^2
+vprev <- lev
+bprev <- tre
+i <- 2
+while(i<=24) {
+  vnew <- alpha*vholdo[i-1]+(1-alpha)*fc[i-1]
+  bnew <- beta*(vnew-vprev)+(1-beta)*bprev
+  fc[i] <- vnew + bnew
+  zt <- vholdo[i]
+  fcerror <- zt-fc[i]
+  sse <- sse + fcerror^2
+  vprev <- vnew
+  bprev <- bnew
+  i <- i + 1
+}
+print(sse)
+outrmse <- sqrt(sse/24)
+outrmse  #0.1030623 
+fc
+
+```
+
+```{r} 
+# additive seasonal exponential smoothing (level + seasonality)
+asfit = HoltWinters(z,beta=F,seasonal="additive")
+print(asfit)
+
+alpha = asfit$alpha
+gamma = asfit$gamma
+lev = asfit$coefficients[1]
+sea = asfit$coefficients[2:13]
+
+sse <- 0
+fc <- c()
+fc[1] <- lev+sea[1]
+zt <- vholdo[1]
+newfc <- fc[1]
+fcerror <- zt-fc[1]
+sse <- sse + fcerror^2
+vprev <- lev
+i <- 2
+
+while (i <= 24) {
+  if ((i-1)%%12==0) {
+  vnew <- alpha*(vholdo[i-1]-sea[12])+(1-alpha)*vprev
+  snew <- gamma*(vholdo[i-1]-vnew)+(1-gamma)*sea[12]
+  fc[i] <- vnew+sea[i %% 12]
+  zt <- vholdo[i]
+  fcerror <- zt-fc[i]
+  sse <- sse + fcerror^2
+  vprev <- vnew
+  sea[12] <- snew
+  i <- i+1
+  }
+  else if(i %% 12 ==0){
+    vnew <- alpha*(vholdo[i-1]-sea[(i-1)%%12])+(1-alpha)*vprev
+    snew <- gamma*(vholdo[i-1]-vnew)+(1-gamma)*sea[(i-1) %% 12]
+    fc[i] <- vnew+sea[12]
+    zt <- vholdo[i]
+    fcerror <- zt-fc[i]
+    sse <- sse + fcerror^2
+    vprev <- vnew
+    sea[(i-1) %% 12] <- snew
+    i <- i+1
+  }
+  else {
+  vnew <- alpha*(vholdo[i-1]-sea[(i-1)%%12])+(1-alpha)*vprev
+  snew <- gamma*(vholdo[i-1]-vnew)+(1-gamma)*sea[(i-1) %% 12]
+  fc[i] <- vnew+sea[i %% 12]
+  zt <- vholdo[i]
+  fcerror <- zt-fc[i]
+  sse <- sse + fcerror^2
+  vprev <- vnew
+  sea[(i-1) %% 12] <- snew
+  i <- i+1
+  }
+}
+
+print(sse)
+rmse <- sqrt(sse/24)
+rmse # 0.1113431  
+fc
+
+```
+
+
+
+```{r}
+# winters additive model (level + trend + seasonality)
+wafit = HoltWinters(z,seasonal="additive") 
+print(wafit)
+
+alpha=wafit$alpha
+beta=wafit$beta
+gamma=wafit$gamma
+lev=wafit$coef[1]
+tre=wafit$coef[2]
+sea=wafit$coefficient[3:14]
+
+sse <- 0
+fc <- lev+tre+sea[1]
+zt <- vholdo[1]
+newfc <- fc
+fcerror <- zt-fc
+sse <- sse + fcerror^2
+vprev <- lev
+bprev <- tre
+i <- 2
+while (i <= 24) {
+  if ((i-1)%%12==0) {
+  vnew <- alpha*(vholdo[i-1]-sea[12])+(1-alpha)*(vprev+bprev)
+  bnew <- beta*(vnew-vprev) +(1-beta)*bprev
+  snew <- gamma*(vholdo[i-1]-vnew)+(1-gamma)*sea[12]
+  fc <- vnew+bnew+sea[i %% 12]
+  zt <- vholdo[i]
+  fcerror <- zt-fc
+  sse <- sse + fcerror^2
+  vprev <- vnew
+  bprev <- bnew
+  sea[12] <- snew
+  i <- i+1
+  }
+  else if(i %% 12 ==0){
+    vnew <- alpha*(vholdo[i-1]-sea[(i-1)%%12])+(1-alpha)*(vprev+bprev)
+    bnew <- beta*(vnew-vprev) +(1-beta)*bprev
+    snew <- gamma*(vholdo[i-1]-vnew)+(1-gamma)*sea[(i-1) %% 12]
+    fc <- vnew+bnew+sea[12]
+    zt <- vholdo[i]
+    fcerror <- zt-fc
+    sse <- sse + fcerror^2
+    vprev <- vnew
+    bprev <- bnew
+    sea[(i-1) %% 12] <- snew
+    i <- i+1
+  }
+  else {
+  vnew <- alpha*(vholdo[i-1]-sea[(i-1)%%12])+(1-alpha)*(vprev+bprev)
+  bnew <- beta*(vnew-vprev) +(1-beta)*bprev
+  snew <- gamma*(vholdo[i-1]-vnew)+(1-gamma)*sea[(i-1) %% 12]
+  fc <- vnew+bnew+sea[i %% 12]
+  zt <- vholdo[i]
+  fcerror <- zt-fc
+  sse <- sse + fcerror^2
+  vprev <- vnew
+  bprev <- bnew
+  sea[(i-1) %% 12] <- snew
+  i <- i+1
+  }
+}
+
+print(sse)
+rmse <- sqrt(sse/24)
+rmse # 0.1147952 
+
+
+```
+
+```{r}
+# arima model
+ari <- auto.arima(z); ari
+
+acf(z)
+pacf(z)
+arima(z, order = c(1,0,0))
+
+pred <- predict(ari, n.ahead = 24); pred
+rmse <- sum((pred$pred - vholdo)^2)/24; #0.1749476
+```
+
+
+```{r}
+monthly_Saanich %>% tail()
+vtrain = monthly_Saanich$monthly_temperature[1:84]
+vholdo = monthly_Saanich$monthly_temperature[85:97]
+z=ts(vtrain,start=c(2006,2),frequency=12)
+z
+
+# simple exponential smoothing (level)
+esfit = HoltWinters(z, beta = F, gamma = F)
+print(esfit)
+pred = predict(esfit,n.ahead=24,prediction.interval=T)
+print(pred)
+
+alpha=esfit$alpha
+fc <- c()
+lev=esfit$coef
+fc[1] <- lev
+zt <- vholdo[1]
+newv <- lev
+fcerror <- zt-fc[1]
+sse <- fcerror^2
+i <- 2
+while(i<=11) {
+  newv <- alpha*vholdo[i-1]+(1-alpha)*newv
+  fc[i] <- newv
+  zt <- vholdo[i]
+  fcerror <- zt-fc[i]
+  sse <- sse+fcerror^2
+  i <- i+1
+}
+print(sse)
+outrmse <- sqrt(sse/11)
+outrmse  # 0.1425695
+
+(fc-(ctd_temperature %>% filter(Pressure == 100)%>%filter(year == 2013)  %>% select(Temperature))[2:12,])^2
+
+
+
+```
+
+
+
+
+
+
+

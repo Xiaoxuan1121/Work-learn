@@ -1,0 +1,190 @@
+---
+title: "2020.08.28"
+author: "Xiaoxuan Liang"
+date: "28/08/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+library(zoo)
+library(reshape2)
+library(forecast)
+library(glmnet)
+library(stringi)
+library(vegan)
+data <- August
+```
+
+
+```{r}
+# data <- data %>% mutate(Root = "unclassified") %>% mutate(Domain = "unclassified") %>% mutate(Phylum = "unclassified") %>% mutate(Class = "unclassified") %>% mutate(Order = "unclassified") %>% mutate(Family = "unclassified") %>% mutate(Genus = "unclassified") %>% mutate(Species = "unclassified") 
+# taxonomy <- as.vector((data %>% group_by(Taxonomy) %>% summarise())$Taxonomy)
+# 
+# which(data$Taxonomy == "Root")
+# data[87,]
+# for (i in 1:nrow(data)) {
+#   if (data$Taxonomy[i] == "Root"){
+#     data$Root[i] <- "Root"
+#   }
+#   else {
+#   data$Root[i] <- substr(data$Taxonomy[i], 4, 7)
+#   }
+# }
+# 
+# 
+# for (j in 1:nrow(data)){
+#   str <- taxonomy[which(taxonomy ==toString(data[j, 4]))]
+#   if (str != "r__Root" && str != "r__Root;" && str != "Root"){
+#   location <- lapply(strsplit(str, ''), function(x) which(x == ';'))
+#   k <- 1
+#   for (i in 9:(9+length(location[[1]])-1)) {
+#     if (!is.na(location[[1]][k]+2) && !is.na(location[[1]][k+1])){
+#     data[j,i] <- substr(str,location[[1]][k]+5, location[[1]][k+1]-1)
+#     k <- k + 1
+#     }
+#     else if (!is.na(nchar(str)) || !is.na(location[[1]][k]+2) || nchar(str) > location[[1]][k]+2){
+#   data[j, i]  <- substr(str, location[[1]][k]+5, nchar(str))
+#     }
+#   }
+#   }
+# }
+
+```
+
+
+```{r}
+# diversity grouped by Cruise and Depth
+
+cruise <- as.vector((data %>% group_by(Cruise) %>% summarize())$Cruise)
+depth <- as.vector((data %>% group_by(Depth) %>% summarize())$Depth)
+cruise_group <- list()
+depth_cruise <- list()
+data_1 <- as.data.frame(data %>% select(Cruise,Depth, Abundance))
+div_cruise_depth <- matrix(nrow = length(cruise), ncol = length(depth))
+
+for (i in 1:length(cruise)) {
+  cruise_group[[i]] <- data_1 %>% filter(Cruise == cruise[i])
+  for (j in 1:length(depth)) {
+    depth_cruise[[j]] <- cruise_group[[i]] %>% filter(Depth == depth[j])
+    if (nrow(depth_cruise[[j]]) == 0) {
+      div_cruise_depth[i,j] = NA
+    }
+    else {
+      div_cruise_depth[i,j] <- diversity(depth_cruise[[j]][,3], MARGIN = 2, index = "shannon")
+    } 
+  }
+}
+
+colnames(div_cruise_depth) <- depth
+rownames(div_cruise_depth) <- cruise
+
+as.data.frame(div_cruise_depth)
+
+
+```
+
+
+
+```{r}
+# diversity grouped by Cruise, Depth and Marker
+data_2 <- as.data.frame(data %>% select(Cruise, Depth, Marker, Abundance))
+marker <- as.vector((data %>% group_by(Marker) %>% summarize())$Marker)
+div_cruise_depth_marker <- list()
+cruise_group <- list()
+depth_group <- list()
+marker_group <- list()
+
+
+for (i in 1:length(marker)){
+  m <- matrix(nrow = length(cruise), ncol = length(depth))
+  marker_group[[i]] <- data_2 %>% filter(Marker == marker[i])
+  for (j in 1:length(cruise)) {
+    cruise_group[[j]] <- marker_group[[i]] %>% filter(Cruise == cruise[j])
+      for (k in 1:length(depth)){
+        depth_group[[k]] <- cruise_group[[j]] %>% filter(Depth == depth[k])
+        if (nrow(depth_group[[k]]) == 0){
+          m[j,k] == NA
+        }
+        else {
+          m[j,k] <- diversity(depth_group[[k]][,4], MARGIN = 2, index = "shannon")
+        }
+      }
+  }
+  colnames(m) <- depth
+  rownames(m) <- cruise
+  div_cruise_depth_marker[[i]] <- m
+}
+
+names(div_cruise_depth_marker) <- marker
+as.data.frame(div_cruise_depth_marker)
+
+```
+
+
+
+
+```{r}
+domain <- as.vector((data %>% group_by(Domain) %>% summarise())$Domain)
+phylum <- as.vector((data %>% group_by(Phylum) %>% summarise())$Phylum)
+marker <- as.vector((data %>% group_by(Marker) %>% summarise())$Marker)
+```
+
+
+
+```{r}
+
+Abundance_summary <- list()
+variable <- colnames(data)[c(8:15)]
+total_abundance <- sum(data$Abundance)
+
+i <- 1
+for (i in variable){
+  Abundance_summary[[i]] <- data %>% group_by_at(i) %>% summarise(Abundance_sum = sum(Abundance),Abundance_percentage = paste((sum(Abundance))/total_abundance*100, "%"))
+}
+
+Abundance_summary
+```
+
+
+```{r}
+# Abundace for Domain with respect to Marker
+Abundance_Domain <- list()
+for (i in 1:length(domain)){
+  Abundance_Domain[[i]] <- data %>% filter(Domain == domain[i]) %>% group_by(Marker) %>% summarise(Abundance_sum = sum(Abundance),Abundance_percentage =paste( (sum(Abundance))/total_abundance*100, "%"))
+  len <- nrow(Abundance_Domain[[i]])
+  Abundance_Domain[[i]] <- Abundance_Domain[[i]] %>% add_column(Domain = c(rep(domain[i], len)), .before = "Marker")
+}
+
+Abundance_Domain
+```
+
+
+```{r}
+
+# Abundace for Domain with respect to Marker
+Abundance_Phylum <- list()
+for (i in 1:length(phylum)){
+  Abundance_Phylum[[i]] <- data %>% filter(Phylum == phylum[i]) %>% group_by(Marker) %>% summarise(Abundance_sum = sum(Abundance),Abundance_percentage = paste((sum(Abundance))/total_abundance*100, "%"))
+  len <- nrow(Abundance_Phylum[[i]])
+  Abundance_Phylum[[i]] <- Abundance_Phylum[[i]] %>% add_column(Phylum = c(rep(phylum[i], len)), .before = "Marker")
+}
+
+Abundance_Phylum
+
+```
+
+
+

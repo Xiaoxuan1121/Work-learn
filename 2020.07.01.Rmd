@@ -1,0 +1,808 @@
+---
+title: "ts"
+author: "Xiaoxuan Liang"
+date: "29/06/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+library(zoo)
+```
+
+```{r}
+# pmse <- matrix(nrow = 3, ncol=8)
+# pmse[2,1] <- "persistence"
+# pmse[3,1] <- "average"
+# pmse[1,2] <- "ctd_o2"
+# pmse[1,3] <- "po4"
+# pmse[1,4] <- "no2"
+# pmse[1,5] <- "h2s"
+# pmse[1,6] <- "nh4"
+# pmse[1,7] <- "no3"
+# pmse[1,8] <- "n2o"
+
+```
+
+
+```{r}
+# identify outliers
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+
+
+
+```
+
+
+```{r}
+bottle <- Bottle_Table_1
+bottle <- bottle %>% select(ctd_o2,po4, no2, h2s,nh4, no3, mean_n2o, depth, year, month, day) %>% mutate(depth_value = paste(depth, "m"))
+bottle <- bottle %>% rename('n2o' = mean_n2o)
+bottle <- bottle %>%  filter(depth %in% c(10,100,120,135,150,165,200))
+bottle$depth <- as.factor(bottle$depth)
+bottle %>% head()
+
+bottle %>% group_by(depth) %>% tally()
+
+
+
+depth_labeller <- function(variable, value) {
+  return(depth_value[value])
+}
+
+ 
+# ctd_o2
+bottle_ctd_o2 <- bottle %>% select(ctd_o2, depth, year, month, day, depth_value)
+bottle_ctd_o2 %>% group_by(ctd_o2) %>% tally()
+bottle_ctd_o2 <- na.omit(bottle_ctd_o2)
+bottle_ctd_o2
+
+# po4
+bottle_po4 <- bottle %>% select(po4, depth, year, month,day, depth_value)
+bottle_po4 %>% group_by(po4) %>% tally
+
+i = 1
+while (i <= length(bottle_po4$po4)) {
+  if (!is.na(bottle_po4$po4[i])){
+  if (bottle_po4$po4[i] == "NaN" || bottle_po4$po4[i] == "NAN" || bottle_po4$po4[i] == "nd" ||
+      bottle_po4$po4[i] == "ND" || bottle_po4$po4[i] == "N/A") {
+    bottle_po4$po4[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_po4 <- bottle_po4 %>% na.omit(bottle_po4)
+bottle_po4$po4 <- destring(bottle_po4$po4)
+
+# no2
+bottle_no2 <- bottle %>% select(no2, depth, year, month, day, depth_value)
+bottle_no2 %>% group_by(no2) %>% tally()
+
+i = 1
+while (i <= length(bottle_no2$no2)) {
+  if (!is.na(bottle_no2$no2[i])){
+  if (bottle_no2$no2[i] == "NaN" || bottle_no2$no2[i] == "NAN" || bottle_no2$no2[i] == "nd"
+      ||bottle_no2$no2[i] == "N/A") {
+    bottle_no2$no2[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_no2 <- bottle_no2 %>% na.omit(bottle_no2)
+bottle_no2$no2 <- destring(bottle_no2$no2)
+
+# h2s
+bottle_h2s <- bottle %>% select(h2s, depth, year, month, day, depth_value)
+bottle_h2s %>% group_by(h2s) %>% tally()
+
+i = 1
+while (i <= length(bottle_h2s$h2s)) {
+  if (!is.na(bottle_h2s$h2s[i])){
+  if (bottle_h2s$h2s[i] == "NaN" || bottle_h2s$h2s[i] == "NAN" || bottle_h2s$h2s[i] == "nd"
+      ||bottle_h2s$h2s[i] == "N/A") {
+    bottle_h2s$h2s[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_h2s <- bottle_h2s %>% na.omit(bottle_h2s)
+bottle_h2s$h2s <- destring(bottle_h2s$h2s)
+
+
+# nh4
+bottle_nh4 <- bottle %>% select(nh4, depth, year, month,day, depth_value)
+bottle_nh4 %>% group_by(nh4) %>% tally()
+
+i = 1
+while (i <= length(bottle_nh4$nh4)) {
+  if (!is.na(bottle_nh4$nh4[i])){
+  if (bottle_nh4$nh4[i] == "NaN" || bottle_nh4$nh4[i] == "NAN" || bottle_nh4$nh4[i] == "nd"
+      ||bottle_nh4$nh4[i] == "N/A") {
+    bottle_nh4$nh4[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+
+bottle_nh4 <- bottle_nh4 %>% na.omit(bottle_nh4)
+bottle_nh4$nh4 <- destring(bottle_nh4$nh4)
+
+
+# no3
+bottle_no3 <- bottle %>% select(no3, depth, year, month,day, depth_value)
+bottle_no3 %>% group_by(no3) %>% tally()
+
+i = 1
+while (i <= length(bottle_no3$no3)) {
+  if (!is.na(bottle_no3$no3[i])){
+    if (bottle_no3$no3[i] == "NaN" || bottle_no3$no3[i] == "NAN" || bottle_no3$no3[i] == "nd"
+      || bottle_no3$no3[i] == "N/A" || bottle_no3$no3[i] == "ND") {
+    bottle_no3$no3[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_no3 <- bottle_no3 %>% na.omit(bottle_no3)
+bottle_no3$no3 <- destring(bottle_no3$no3)
+
+
+# n2o
+bottle_n2o <- bottle %>% select(n2o, depth, year, month,day, depth_value)
+bottle_n2o %>% group_by(n2o) %>% tally()
+bottle_n2o <- bottle_n2o %>% na.omit(bottle_n2o)
+
+
+```
+
+
+```{r}
+# ctd_o2
+# persistence
+predicted_2013 <- bottle_ctd_o2 %>% filter(year == 2012) %>% rename("predicted" = ctd_o2);
+predicted_2014 <- bottle_ctd_o2 %>% filter(year == 2013)%>% rename("predicted" = ctd_o2); 
+
+results1 <- predicted_2013 %>% full_join(bottle_ctd_o2 %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - ctd_o2)^2);
+results2 <- predicted_2014 %>% full_join(bottle_ctd_o2 %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - ctd_o2)^2); 
+# pmse[2,2] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+```{r}
+# ctd_o2
+# average
+
+a <- bottle_ctd_o2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(ctd_o2)) %>% ungroup() %>% mutate(year = 2013) %>% rename('ctd_o2' = predicted_2013); 
+
+predicted_2013 <- bottle_ctd_o2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "ctd_o2")); 
+
+a <- bottle_ctd_o2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(ctd_o2)) %>% ungroup() %>% mutate(year=2014) %>% rename('ctd_o2' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "ctd_o2", "year", "month")); 
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = ctd_o2)
+
+# bottle_ctd_o2 <- bottle_ctd_o2 %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_ctd_o2, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - ctd_o2)^2);
+# 
+# pmse[3,2] <- sum(na.omit(results$comparison)); pmse
+
+```
+
+
+
+```{r}
+# po4
+# persistence
+predicted_2013 <- bottle_po4 %>% filter(year == 2012) %>% rename("predicted" = po4);
+predicted_2014 <- bottle_po4 %>% filter(year == 2013)%>% rename("predicted" = po4); 
+
+results1 <- predicted_2013 %>% full_join(bottle_po4 %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - po4)^2); 
+results2 <- predicted_2014 %>% full_join(bottle_po4 %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - po4)^2); 
+# pmse[2,3] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+```{r}
+
+# po4
+# average
+
+a <- bottle_po4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(po4)) %>% ungroup() %>% mutate(year = 2013) %>% rename('po4' = predicted_2013); 
+
+predicted_2013 <- bottle_po4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "po4")); 
+
+a <- bottle_po4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(po4)) %>% ungroup() %>% mutate(year=2014) %>% rename('po4' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "po4", "year", "month"));
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = po4)
+
+# bottle_po4 <- bottle_po4 %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_po4, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - po4)^2); 
+# 
+# pmse[3,3] <- sum(na.omit(results$comparison)); pmse
+```
+
+
+```{r}
+# no2
+# persistence
+predicted_2013 <- bottle_no2 %>% filter(year == 2012) %>% rename("predicted" = no2);
+predicted_2014 <- bottle_no2 %>% filter(year == 2013)%>% rename("predicted" = no2); 
+
+results1 <- predicted_2013 %>% full_join(bottle_no2 %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - no2)^2); 
+results2 <- predicted_2014 %>% full_join(bottle_no2 %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - no2)^2); 
+# pmse[2,4] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+```{r}
+# no2
+# average
+
+a <- bottle_no2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(no2)) %>% ungroup() %>% mutate(year = 2013) %>% rename('no2' = predicted_2013); 
+
+predicted_2013 <- bottle_no2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "no2")); 
+
+a <- bottle_no2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(no2)) %>% ungroup() %>% mutate(year=2014) %>% rename('no2' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "no2", "year", "month"));
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = no2)
+
+# bottle_no2 <- bottle_no2 %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_no2, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - no2)^2); 
+# 
+# pmse[3,4] <- sum(na.omit(results$comparison)); pmse
+```
+
+
+```{r}
+
+# h2s
+# persistence
+
+predicted_2013 <- bottle_h2s %>% filter(year == 2012) %>% rename("predicted" = h2s); 
+predicted_2014 <- bottle_h2s %>% filter(year == 2013)%>% rename("predicted" = h2s); 
+
+results1 <- predicted_2013 %>% full_join(bottle_h2s %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - h2s)^2); 
+results2 <- predicted_2014 %>% full_join(bottle_h2s %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - h2s)^2); 
+# pmse[2,5] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+```{r}
+
+# h2s
+# average
+
+a <- bottle_h2s %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(h2s)) %>% ungroup() %>% mutate(year = 2013) %>% rename('h2s' = predicted_2013); 
+
+predicted_2013 <- bottle_h2s %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "h2s")); 
+
+a <- bottle_h2s %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(h2s)) %>% ungroup() %>% mutate(year=2014) %>% rename('h2s' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "h2s", "year", "month"));
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = h2s)
+
+# bottle_h2s <- bottle_h2s %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_h2s, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - h2s)^2); 
+# 
+# pmse[3,5] <- sum(na.omit(results$comparison)); pmse
+```
+
+
+```{r}
+
+# nh4
+# persistence
+
+predicted_2013 <- bottle_nh4 %>% filter(year == 2012) %>% rename("predicted" = nh4); 
+predicted_2014 <- bottle_nh4 %>% filter(year == 2013)%>% rename("predicted" = nh4); 
+
+results1 <- predicted_2013 %>% full_join(bottle_nh4 %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - nh4)^2); 
+results2 <- predicted_2014 %>% full_join(bottle_nh4 %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - nh4)^2); 
+# pmse[2,6] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+```{r}
+
+# nh4
+# average
+
+a <- bottle_nh4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(nh4)) %>% ungroup() %>% mutate(year = 2013) %>% rename('nh4' = predicted_2013); 
+
+predicted_2013 <- bottle_nh4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "nh4")); 
+
+a <- bottle_nh4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(nh4)) %>% ungroup() %>% mutate(year=2014) %>% rename('nh4' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "nh4", "year", "month"));
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = nh4)
+
+# bottle_nh4 <- bottle_nh4 %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_nh4, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - nh4)^2); 
+# 
+# pmse[3,6] <- sum(na.omit(results$comparison)); pmse
+```
+
+```{r}
+
+# no3
+# persistence
+
+predicted_2013 <- bottle_no3 %>% filter(year == 2012) %>% rename("predicted" = no3); 
+predicted_2014 <- bottle_no3 %>% filter(year == 2013)%>% rename("predicted" = no3); 
+
+results1 <- predicted_2013 %>% full_join(bottle_no3 %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - no3)^2); 
+results2 <- predicted_2014 %>% full_join(bottle_no3 %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - no3)^2); 
+# pmse[2,7] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+
+```{r}
+
+# no3
+# average
+
+a <- bottle_no3 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(no3)) %>% ungroup() %>% mutate(year = 2013) %>% rename('no3' = predicted_2013); 
+
+predicted_2013 <- bottle_no3 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "no3")); 
+
+a <- bottle_no3 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(no3)) %>% ungroup() %>% mutate(year=2014) %>% rename('no3' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "no3", "year", "month"));
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = no3)
+
+# bottle_no3 <- bottle_no3 %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_no3, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - no3)^2); 
+# 
+# pmse[3,7] <- sum(na.omit(results$comparison)); pmse
+```
+
+
+
+```{r}
+# n2o
+# persistence
+predicted_2013 <- bottle_n2o %>% filter(year == 2012) %>% rename("predicted" = n2o); 
+predicted_2014 <- bottle_n2o %>% filter(year == 2013)%>% rename("predicted" = n2o); 
+
+results1 <- predicted_2013 %>% full_join(bottle_n2o %>% filter(year == 2013), by = c("depth", "month")) %>% mutate(comparison = (predicted - n2o)^2); 
+results2 <- predicted_2014 %>% full_join(bottle_n2o %>% filter(year == 2014), by = c("depth", "month")) %>% mutate(comparison = (predicted - n2o)^2); 
+# pmse[2,8] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse
+```
+
+
+```{r}
+
+# n2o
+# average
+
+a <- bottle_n2o %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(depth, month) %>% summarize(predicted_2013 = mean(n2o)) %>% ungroup() %>% mutate(year = 2013) %>% rename('n2o' = predicted_2013); 
+
+predicted_2013 <- bottle_n2o %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("depth", "year", "month", "n2o")); 
+
+a <- bottle_n2o %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(depth, month) %>% summarize(predicted_2014 = mean(n2o)) %>% ungroup() %>% mutate(year=2014) %>% rename('n2o' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("depth", "n2o", "year", "month"));
+
+predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = n2o)
+
+# bottle_n2o <- bottle_n2o %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(bottle_n2o, by = c('depth', 'year', 'month')) %>% mutate(comparison = (predicted - n2o)^2); 
+# 
+# pmse[3,8] <- sum(na.omit(results$comparison)); pmse
+
+```
+
+
+
+```{r}
+# predict
+ctd_o2_predict <- bottle_ctd_o2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(ctd_o2)) %>% ungroup() %>% mutate(year = 2015) %>% rename('ctd_o2' = predicted_2015); 
+ctd_o2_predict <- ctd_o2_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+po4_predict <- bottle_po4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(po4)) %>% ungroup() %>% mutate(year = 2015) %>% rename('po4' = predicted_2015); 
+po4_predict <- po4_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+no2_predict <- bottle_no2 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(no2)) %>% ungroup() %>% mutate(year = 2015) %>% rename('no2' = predicted_2015); 
+no2_predict <- no2_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+
+h2s_predict <- bottle_h2s %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(h2s)) %>% ungroup() %>% mutate(year = 2015) %>% rename('h2s' = predicted_2015); 
+h2s_predict <- h2s_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+nh4_predict<- bottle_nh4 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(nh4)) %>% ungroup() %>% mutate(year = 2015) %>% rename('nh4' = predicted_2015); 
+nh4_predict <- nh4_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+no3_predict <- bottle_no3 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(no3)) %>% ungroup() %>% mutate(year = 2015) %>% rename('no3' = predicted_2015); 
+no3_predict <- no3_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+n2o_predict <- bottle_n2o %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(depth, month) %>% summarize(predicted_2015 = mean(n2o)) %>% ungroup() %>% mutate(year = 2015) %>% rename('n2o' = predicted_2015); 
+n2o_predict <- n2o_predict %>% mutate(depth_value=paste(depth, "m")) 
+
+```
+
+
+```{r}
+# concatenate
+
+ctd_o2_predict <- ctd_o2_predict %>% mutate(day = 01)
+ctd_o2_predict <- bottle_ctd_o2 %>% full_join(by = c("ctd_o2", "depth", "year", "month","day", "depth_value"), ctd_o2_predict) 
+ctd_o2_predict$date <- as.Date(with(ctd_o2_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+po4_predict <- po4_predict %>% mutate(day = 01)
+po4_predict <- bottle_po4 %>% full_join(by = c("po4", "depth", "year", "month","day", "depth_value"), po4_predict) 
+po4_predict$date <- as.Date(with(po4_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+
+no2_predict <- no2_predict %>% mutate(day = 01)
+no2_predict <- bottle_no2 %>% full_join(by = c("no2", "depth", "year", "month","day", "depth_value"), no2_predict) 
+no2_predict$date <- as.Date(with(no2_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+
+h2s_predict <- h2s_predict %>% mutate(day = 01)
+h2s_predict <- bottle_h2s %>% full_join(by = c("h2s", "depth", "year", "month","day", "depth_value"), h2s_predict) 
+h2s_predict$date <- as.Date(with(h2s_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+nh4_predict <- nh4_predict %>% mutate(day = 01)
+nh4_predict <- bottle_nh4 %>% full_join(by = c("nh4", "depth", "year", "month","day", "depth_value"), nh4_predict) 
+nh4_predict$date <- as.Date(with(nh4_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+no3_predict <- no3_predict %>% mutate(day = 01)
+no3_predict <- bottle_no3 %>% full_join(by = c("no3", "depth", "year", "month","day", "depth_value"), no3_predict) 
+no3_predict$date <- as.Date(with(no3_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+n2o_predict <- n2o_predict %>% mutate(day = 01)
+n2o_predict <- bottle_n2o %>% full_join(by = c("n2o", "depth", "year", "month","day", "depth_value"), n2o_predict) 
+n2o_predict$date <- as.Date(with(n2o_predict, paste(year, month, day,sep="-")), "%Y-%m-%d")
+```
+
+```{r}
+# bottle plot
+ggplot(ctd_o2_predict) + 
+  labs(y = "ctd_o2 (uM)") + 
+  geom_line(aes(x=date, y=ctd_o2), color = "black") +
+  geom_line(data = ctd_o2_predict[ctd_o2_predict$date >= as.Date("2015-01-01") & ctd_o2_predict$date <= "2015-12-31",], 
+              aes(x = date, y = ctd_o2), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+ggplot(po4_predict) + 
+  labs(y = "po4 (uM)") + 
+  geom_line(aes(x=date, y=po4), color = "black") +
+  geom_line(data = po4_predict[po4_predict$date >= as.Date("2015-01-01") & po4_predict$date <= "2015-12-31",], 
+              aes(x = date, y = po4), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+ggplot(no2_predict) + 
+  labs(y = "no2 (uM)") + 
+  geom_line(aes(x=date, y=no2), color = "black") +
+  geom_line(data = no2_predict[no2_predict$date >= as.Date("2015-01-01") & no2_predict$date <= "2015-12-31",], 
+              aes(x = date, y = no2), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+ggplot(h2s_predict) + 
+  labs(y = "h2s (uM)") + 
+  geom_line(aes(x=date, y=h2s), color = "black") +
+  geom_line(data = h2s_predict[h2s_predict$date >= as.Date("2015-01-01") & h2s_predict$date <= "2015-12-31",], 
+              aes(x = date, y = h2s), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+ggplot(nh4_predict) + 
+  labs(y = "nh4 (uM)") + 
+  geom_line(aes(x=date, y=nh4), color = "black") +
+  geom_line(data = nh4_predict[nh4_predict$date >= as.Date("2015-01-01") & nh4_predict$date <= "2015-12-31",], 
+              aes(x = date, y = nh4), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+ggplot(no3_predict) + 
+  labs(y = "no3 (uM)") +
+  geom_line(aes(x=date, y=no3), color = "black") +
+  geom_line(data = no3_predict[no3_predict$date >= as.Date("2015-01-01") & no3_predict$date <= "2015-12-31",], 
+              aes(x = date, y = no3), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+ggplot(n2o_predict) + 
+  labs(y = "n2o (uM)") + 
+  geom_line(aes(x=date, y=n2o), color = "black") +
+  geom_line(data = n2o_predict[n2o_predict$date >= as.Date("2015-01-01") & n2o_predict$date <= "2015-12-31",], 
+              aes(x = date, y = n2o), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+```
+```{r}
+# outliers
+bottle_ctd_o2 %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(ctd_o2), ctd_o2, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = ctd_o2)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+bottle_po4 %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(po4), po4, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = po4)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+bottle_no2 %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(no2), no2, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = no2)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+bottle_h2s %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(h2s), h2s, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = h2s)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+bottle_nh4 %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(nh4), nh4, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = nh4)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+bottle_no3 %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(no3), no3, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = no3)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+bottle_n2o %>% group_by(depth, month) %>% mutate(outlier = ifelse(is_outlier(n2o), n2o, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(depth), y = n2o)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+```
+
+
+```{r}
+# CTD clean data
+# import data set here
+ctd <- CTD_Table_1
+ctd <- ctd %>% rename('Pressure' = `Pressure, Strain Gauge`) %>% rename('Temperature' = `Temperature [ITS-90]`) %>% rename('year' = year)
+ctd <- ctd %>% select(Pressure,Temperature, Salinity, year, month, day) %>% 
+  filter(Pressure %in% c(10, 100, 120, 135, 150, 165, 200))
+
+ctd[c(which(is.na(ctd$Salinity))),]
+ctd <- na.omit(ctd)
+ctd <- ctd %>% filter(Pressure %in% c(10,100, 120, 135,150,165, 200)) %>% mutate(depth_value=paste(Pressure, "m"))
+```
+
+```{r}
+# pmse1 <- matrix(nrow = 3, ncol = 3)
+# pmse1[2,1] <- "persistence"
+# pmse1[3,1] <- "average"
+# pmse1[1,2] <- "temperature"
+# pmse1[1,3] <- "salinity"
+# pmse1
+```
+
+
+
+```{r}
+# Temperature
+ctd_temperature <- ctd %>% select(Pressure, Temperature, year, month, depth_value)
+```
+
+```{r}
+# Persistence
+
+predicted_2013 <- ctd_temperature %>% filter(year == 2012) %>% rename("predicted" = Temperature); predicted_2013
+predicted_2014 <- ctd_temperature %>% filter(year == 2013)%>% rename("predicted" = Temperature); predicted_2014
+```
+
+```{r}
+# pmse
+
+# results1 <- predicted_2013 %>% full_join(ctd_temperature %>% filter(year == 2013), by = c("Pressure", "month")) %>% mutate(comparison = (predicted - Temperature)^2)
+# results2 <- predicted_2014 %>% full_join(ctd_temperature %>% filter(year == 2014), by = c("Pressure", "month")) %>% mutate(comparison = (predicted - Temperature)^2)
+# pmse1[2,2] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse1
+
+```
+
+```{r}
+# Average 
+
+a <- ctd_temperature %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(Pressure, month) %>% summarize(predicted_2013 = mean(Temperature)) %>% ungroup() %>% mutate(year = 2013) %>% rename('Temperature' = predicted_2013)
+
+predicted_2013 <- ctd_temperature %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("Pressure", "Temperature", "year", "month"))
+
+a <- ctd_temperature %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(Pressure, month) %>% summarize(predicted_2014 = mean(Temperature)) %>% ungroup() %>% mutate(year=2014) %>% rename('Temperature' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("Pressure", "Temperature", "year", "month"))
+
+predicted_2013_2014
+
+predicted_2013_2014 %>% filter(Pressure == 100)
+
+```
+
+
+```{r}
+# pmse
+
+# predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = Temperature)
+# ctd_temperature <- ctd_temperature %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(ctd_temperature, by = c('Pressure', 'year', 'month')) %>% mutate(comparison = (predicted - Temperature)^2); results
+# 
+# pmse1[3,2] <- sum(na.omit(results$comparison)); pmse1
+```
+
+
+```{r}
+# predict
+temperature_2015 <- ctd_temperature %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(Pressure, month) %>% summarize(predicted_2015 = mean(Temperature)) %>% ungroup() %>% mutate(year = 2015) %>% rename('Temperature' = predicted_2015)
+
+```
+
+```{r}
+# temperature plot
+
+temperature_2015 <- ctd_temperature %>% full_join(temperature_2015, by = c("Pressure", "month", "Temperature", "year")) %>% mutate(depth_Value=paste(Pressure, "m")) %>% mutate(day = "01") %>% mutate(depth_value=paste(Pressure, "m"))
+temperature_2015$date <- as.Date(with(temperature_2015, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+ggplot(temperature_2015) + 
+  labs(y = "Temperature (psu)") + 
+  geom_line(aes(x=date, y=Temperature), color = "black") +
+  geom_line(data = temperature_2015[temperature_2015$date >= as.Date("2015-01-01") & temperature_2015$date <= "2015-12-31",], 
+              aes(x = date, y = Temperature), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+
+
+```
+
+```{r}
+# outliers
+ctd_temperature %>%
+  group_by(Pressure, month) %>%
+  mutate(outlier = ifelse(is_outlier(Temperature), Temperature, as.numeric(NA))) %>%
+  ggplot(., aes(x = factor(Pressure), y = Temperature)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust = -0.3) +
+    facet_grid(.~month)
+```
+
+
+
+
+```{r}
+ctd_Salinity <- ctd %>% select(Pressure, Salinity, year, month)
+```
+
+
+```{r}
+# Persistence
+predicted_2013 <- ctd_Salinity %>% filter(year == 2012) %>% rename("predicted" = Salinity); predicted_2013
+predicted_2014 <- ctd_Salinity %>% filter(year == 2013) %>% rename("predicted" = Salinity); predicted_2014
+
+```
+
+
+```{r}
+# pmse
+
+# results1 <- predicted_2013 %>% full_join(ctd_Salinity %>% filter(year == 2013), by = c("Pressure", "month")) %>% mutate(comparison = (predicted - Salinity)^2)
+# results2 <- predicted_2014 %>% full_join(ctd_Salinity %>% filter(year == 2014), by = c("Pressure", "month")) %>% mutate(comparison = (predicted - Salinity)^2)
+# pmse1[2,3] <- sum(na.omit(results1$comparison)) + sum(na.omit(results2$comparison)); pmse1
+
+```
+
+
+```{r}
+# Average
+
+a <- ctd_Salinity %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% group_by(Pressure, month) %>% summarize(predicted_2013 = mean(Salinity)) %>% ungroup() %>% mutate(year = 2013) %>% rename('Salinity' = predicted_2013)
+
+predicted_2013 <- ctd_Salinity %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012)) %>% full_join(a, by = c("Pressure", "Salinity", "year", "month"))
+
+a <- ctd_Salinity %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% 
+group_by(Pressure, month) %>% summarize(predicted_2014 = mean(Salinity)) %>% ungroup() %>% mutate(year=2014) %>% rename('Salinity' = predicted_2014)
+
+predicted_2013_2014 <- predicted_2013 %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013)) %>% full_join(a, by = c("Pressure", "Salinity", "year", "month"))
+
+predicted_2013_2014
+```
+
+
+```{r}
+# pmse
+# predicted_2013_2014 <- predicted_2013_2014 %>% filter(year %in% c(2013, 2014)) %>% rename('predicted' = Salinity)
+# ctd_Salinity <- ctd_Salinity %>% filter(year %in% c(2013, 2014))
+# 
+# results <- predicted_2013_2014 %>% full_join(ctd_Salinity, by = c('Pressure', 'year', 'month')) %>% mutate(comparison = (predicted - Salinity)^2); results
+# 
+# pmse1[3,3] <- sum(na.omit(results$comparison)); pmse1
+
+```
+
+
+
+```{r}
+# predict
+salinity_2015 <- ctd_Salinity %>% filter(year %in% c(2008, 2009, 2010, 2011, 2012, 2013, 2014)) %>% group_by(Pressure, month) %>% summarize(predicted_2015 = mean(Salinity)) %>% ungroup() %>% mutate(year = 2015) %>% rename('Salinity' = predicted_2015)
+
+```
+
+
+```{r}
+
+# salinity plot
+salinity_2015 <- ctd_Salinity %>% full_join(salinity_2015, by = c("Pressure", "month", "Salinity", "year")) %>% mutate(depth_Value=paste(Pressure, "m")) %>% mutate(day = "01") %>% mutate(depth_value=paste(Pressure, "m"))
+salinity_2015$date <- as.Date(with(salinity_2015, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+ggplot(salinity_2015) + 
+  labs(y = "Salinity (psu)") + 
+  geom_line(aes(x=date, y=Salinity), color = "black") +
+  geom_line(data = salinity_2015[salinity_2015$date >= as.Date("2015-01-01") & salinity_2015$date <= "2015-12-31",], 
+              aes(x = date, y = Salinity), color = "red") +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+```
+
+
+```{r}
+# outliers
+ctd_Salinity %>% group_by(Pressure, month) %>% mutate(outlier = ifelse(is_outlier(Salinity), Salinity, as.numeric(NA))) %>%
+  ggplot(., aes(x = as.factor(Pressure), y = Salinity)) +
+    geom_boxplot() +
+    geom_text(aes(label = outlier), na.rm = TRUE, hjust=-0.3 ) +
+   facet_grid(.~month)
+
+
+
+
+```
+
+
+

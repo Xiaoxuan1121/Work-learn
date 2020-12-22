@@ -1,0 +1,107 @@
+---
+title: "2020.08.25"
+author: "Xiaoxuan Liang"
+date: "25/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+library(zoo)
+library(reshape2)
+library(forecast)
+library(glmnet)
+library(stringi)
+library(vegan)
+
+```
+
+```{r}
+# diversity grouped by Cruise and Depth
+
+cruise <- as.vector((full_data %>% group_by(Cruise) %>% summarize())$Cruise)
+depth <- as.vector((full_data %>% group_by(Depth) %>% summarize())$Depth)
+
+```
+
+```{r}
+cruise_group <- list()
+depth_cruise <- list()
+data_1 <- as.data.frame(full_data %>% select(Cruise,Depth, Abundance))
+div <- matrix(nrow = length(cruise), ncol = length(depth))
+
+for (i in 1:length(cruise)) {
+  cruise_group[[i]] <- data_1 %>% filter(Cruise == cruise[i])
+  for (j in 1:length(depth)) {
+    depth_cruise[[j]] <- cruise_group[[i]] %>% filter(Depth == depth[j])
+    div[i,j] <- diversity(depth_cruise[[j]][,3], MARGIN = 2, index = "shannon")
+  } 
+}
+
+colnames(div) <- depth
+rownames(div) <- cruise
+
+
+```
+
+```{r}
+# diversity grouped by Cruise and Depth with respect to Marker
+data_2 <- as.data.frame(full_data %>% select(Cruise, Depth, Marker, Abundance))
+marker <- as.vector((full_data %>% group_by(Marker) %>% summarize())$Marker)
+div <- list()
+cruise_group <- list()
+depth_group <- list()
+marker_group <- list()
+
+
+for (i in 1:length(marker)){
+  m <- matrix(nrow = length(cruise), ncol = length(depth))
+  marker_group[[i]] <- data_2 %>% filter(Marker == marker[i])
+  for (j in 1:length(cruise)) {
+    cruise_group[[j]] <- marker_group[[i]] %>% filter(Cruise == cruise[j])
+      for (k in 1:length(depth)){
+        depth_group[[k]] <- cruise_group[[j]] %>% filter(Depth == depth[k])
+        m[j,k] <- diversity(depth_group[[k]][,4], MARGIN = 2, index = "shannon")
+      }
+  }
+  colnames(m) <- depth
+  rownames(m) <- cruise
+  div[[i]] <- m
+}
+
+
+names(div) <- marker
+write.csv(div, "diversity.csv")
+```
+
+
+
+
+```{r}
+
+Abundance_summary <- list()
+variable <- colnames(full_data)[c(16:23)]
+total_abundance <- sum(full_data$Abundance)
+
+i <- 1
+for (i in variable){
+  Abundance_summary[[i]] <- full_data %>% group_by_at(i) %>% summarise(Abundance_sum = sum(Abundance),Abundance_percentage = (sum(Abundance))/total_abundance)
+}
+
+Abundance_summary
+
+```
+
+
+
+

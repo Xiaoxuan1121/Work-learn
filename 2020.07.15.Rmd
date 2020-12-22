@@ -1,0 +1,182 @@
+---
+title: "plots"
+author: "Xiaoxuan Liang"
+date: "15/07/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+library(zoo)
+library(reshape2)
+```
+
+```{r}
+# data import
+dat <- ClimateData
+dat
+
+```
+
+
+```{r}
+# max temperature
+max_temperature <- dat %>% select("period", "Tmax(01)", "Tmax(02)", "Tmax(03)", "Tmax(04)",
+                                  "Tmax(05)", "Tmax(06)", "Tmax(07)", "Tmax(08)",
+                                  "Tmax(09)", "Tmax(10)", "Tmax(11)", "Tmax(12)")
+max_temperature <- melt(max_temperature)
+max_temperature <- max_temperature %>% mutate(year = substr(period, 6, 9)) %>% 
+  mutate(month = substr(variable, 6,7))
+max_temperature$year <- as.numeric(max_temperature$year)
+max_temperature$month <- as.numeric(max_temperature$month)
+max_temperature <- max_temperature %>% mutate(day = "01")
+max_temperature$date <- as.Date(with(max_temperature, paste(year, month, day,sep="-")))
+
+ggplot(max_temperature) + 
+  geom_line(aes(x=date, y=value)) +
+  ylab("Temperature (°C)")
+  
+
+```
+
+
+```{r}
+# min temperature
+min_temperature <- dat %>% select("period", "Tmin(01)", "Tmin(02)", "Tmin(03)", "Tmin(04)",
+                                  "Tmin(05)", "Tmin(06)", "Tmin(07)", "Tmin(08)",
+                                  "Tmin(09)", "Tmin(10)", "Tmin(11)", "Tmin(12)")
+min_temperature <- melt(min_temperature)
+min_temperature <- min_temperature %>% mutate(year = substr(period, 6, 9)) %>% 
+  mutate(month = substr(variable, 6,7))
+min_temperature$year <- as.numeric(min_temperature$year)
+min_temperature$month <- as.numeric(min_temperature$month)
+min_temperature <- min_temperature %>% mutate(day = "01")
+min_temperature$date <- as.Date(with(min_temperature, paste(year, month, day,sep="-")))
+
+ggplot(min_temperature) + 
+  geom_line(aes(x=date, y=value)) +
+  ylab("Temperature (°C)")
+
+
+
+
+```
+
+```{r}
+# average temperature
+avg_temperature <- dat %>% select("period", "Tave(01)", "Tave(02)", "Tave(03)", "Tave(04)",
+                                  "Tave(05)", "Tave(06)", "Tave(07)", "Tave(08)",
+                                  "Tave(09)", "Tave(10)", "Tave(11)", "Tave(12)")
+avg_temperature <- melt(avg_temperature)
+avg_temperature <- avg_temperature %>% mutate(year = substr(period, 6, 9)) %>% 
+  mutate(month = substr(variable, 6,7))
+avg_temperature$year <- as.numeric(avg_temperature$year)
+avg_temperature$month <- as.numeric(avg_temperature$month)
+avg_temperature <- avg_temperature %>% mutate(day = "01")
+avg_temperature$date <- as.Date(with(avg_temperature, paste(year, month, day,sep="-")))
+
+ggplot(avg_temperature) + 
+  geom_line(aes(x=date, y=value)) +
+  ylab("Temperature (°C)")
+
+
+
+
+
+```
+
+```{r}
+# mixed plot
+temperature <- max_temperature %>% full_join(min_temperature) %>% full_join(avg_temperature)
+
+temperature <- temperature %>% mutate(type = substr(variable, 2, 4)) %>% 
+  select(value, date, type)
+
+temperature %>% ggplot(aes(x=date, y=value, color = type)) +
+  geom_line()
+
+ggplot(temperature, aes(x=date, y=value)) +  
+  labs(y="Temperature (°C)") +
+geom_line() +
+facet_grid(rows = vars(type)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+
+
+```
+```{r}
+
+# precipitation
+prec <- dat %>% select("period", "Prec(01)", "Prec(02)", "Prec(03)", "Prec(04)",
+                                  "Prec(05)", "Prec(06)", "Prec(07)", "Prec(08)",
+                                  "Prec(09)", "Prec(10)", "Prec(11)", "Prec(12)")
+prec <- melt(prec)
+prec <- prec %>% mutate(year = substr(period, 6, 9)) %>% 
+  mutate(month = substr(variable, 6,7))
+prec$year <- as.numeric(prec$year)
+prec$month <- as.numeric(prec$month)
+prec <- prec %>% mutate(day = "01")
+prec$date <- as.Date(with(prec, paste(year, month, day,sep="-")))
+
+ggplot(prec) + 
+  geom_line(aes(x=date, y=value)) +
+  labs(y = "Precipitation (mm)")
+
+
+```
+
+```{r}
+# solar radiation
+rad <- dat %>% select("period", "Rad(01)", "Rad(02)", "Rad(03)", "Rad(04)",
+                                  "Rad(05)", "Rad(06)", "Rad(07)", "Rad(08)",
+                                  "Rad(09)", "Rad(10)", "Rad(11)", "Rad(12)")
+rad <- melt(rad)
+rad <- rad %>% mutate(year = substr(period, 6, 9)) %>% 
+  mutate(month = substr(variable, 5,6))
+rad$year <- as.numeric(rad$year)
+rad$month <- as.numeric(rad$month)
+rad <- rad %>% mutate(day = "01")
+rad$date <- as.Date(with(rad, paste(year, month, day,sep="-")))
+
+ggplot(rad) + 
+  geom_line(aes(x=date, y=value)) +
+  labs(y = "Solar Radiation (MJ m^-2 d^-1)")
+
+
+
+```
+
+
+```{r}
+# relative humidity
+rh <- dat %>% select("period", "RH(01)", "RH(02)", "RH(03)", "RH(04)",
+                                  "RH(05)", "RH(06)", "RH(07)", "RH(08)",
+                                  "RH(09)", "RH(10)", "RH(11)", "RH(12)")
+rh <- melt(rh)
+rh <- rh %>% mutate(year = substr(period, 6, 9)) %>% 
+  mutate(month = substr(variable, 4,5))
+rh$year <- as.numeric(rh$year)
+rh$month <- as.numeric(rh$month)
+rh <- rh %>% mutate(day = "01")
+rh$date <- as.Date(with(rh, paste(year, month, day,sep="-")))
+
+ggplot(rh) + 
+  geom_line(aes(x=date, y=value)) +
+  labs(y = "Relative Humidity (%)")
+
+
+
+
+```
+
+

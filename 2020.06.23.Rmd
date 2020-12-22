@@ -1,0 +1,632 @@
+---
+title: "plots"
+author: "Xiaoxuan Liang"
+date: "19/06/2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+# data import
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Contig file import
+# import data set here
+dat <- marker_contig_map_all
+dat <- dat %>% rename('type' = sample)
+dat %>% group_by(Marker) %>% tally()
+dat <- dat %>% filter(Marker %in% c("narG", "napA", "nirK", "nirS",
+                                    "norB", "norC", "nosZ"))
+dat_narG <- dat %>% filter(Marker == "narG")
+dat_napA <- dat %>% filter(Marker == "napA")
+dat_nirK <- dat %>% filter(Marker == "nirK")
+dat_nirS <- dat %>% filter(Marker == "nirS")
+dat_norB <- dat %>% filter(Marker == "norB")
+dat_norC <- dat %>% filter(Marker == "norC")
+dat_nosZ <- dat %>% filter(Marker == "nosZ")
+dat$depth <- as.factor(dat$depth)
+
+```
+
+```{r}
+# narG
+dat_narG %>% group_by(depth) %>% tally()
+dat_narG %>% group_by(Query) %>% tally()
+
+dat_narG %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) +
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+
+```
+
+```{r}
+# napA
+dat_napA %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) +
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+
+```
+
+```{r}
+# nirK
+dat_nirK %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) + 
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+```
+
+```{r}
+# nirS
+dat_nirS %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) + 
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+```
+
+```{r}
+# norB
+dat_norB %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) + 
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+```
+
+```{r}
+# norC 
+dat_norC %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) + 
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+```
+
+```{r}
+# nosZ
+dat_nosZ %>% 
+  ggplot(aes(group=depth, x=depth, y=Taxonomy, size=Abundance, color=type)) + 
+  geom_point(alpha=0.6) +
+  scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m'))
+
+```
+
+
+```{r}
+# final output
+ggplot(dat, aes(x=depth, y=Taxonomy, size=Abundance, color=type)) +  
+geom_point(alpha=0.5) +
+scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m')) +
+facet_grid(.~ Marker) + 
+theme(axis.text.x=element_text(angle = -90, hjust = 0),axis.text.y=element_blank()) 
+
+
+
+ggplot(dat) +  
+geom_point(aes(x=depth, y=Taxonomy, size=Abundance, color=type), alpha=0.5) +
+scale_x_discrete(label=c('10m', '100m', '120m', '135m', '150m', '165m', '200m')) +
+facet_grid(.~ Marker) + 
+theme(axis.text.x=element_text(angle = -90, hjust = 0),axis.text.y=element_blank()) 
+```
+
+
+
+
+
+
+
+```{r}
+# Bottle clean data
+# import data set here
+bottle <- Bottle_Table_1
+bottle <- bottle %>% select(ctd_o2,po4, no2, h2s, nh4,no3,mean_n2o, depth, year, month)
+bottle <- bottle %>% rename("n2o" = mean_n2o)
+bottle <- bottle %>% mutate(depth_value = paste(depth, "m"))
+bottle$depth <- as.factor(bottle$depth)
+bottle$month <- as.factor(bottle$month)
+bottle$year <- as.factor(bottle$year)
+
+# ctd_o2
+bottle_ctd_o2 <- bottle %>% select(ctd_o2, depth, year, month, depth_value)
+bottle_ctd_o2 %>% group_by(ctd_o2) %>% tally()
+bottle_ctd_o2 <- na.omit(bottle_ctd_o2)
+
+# po4
+bottle_po4 <- bottle %>% select(po4, depth, year, month)
+bottle_po4 %>% group_by(po4) %>% tally
+
+i = 1
+while (i <= length(bottle_po4$po4)) {
+  if (!is.na(bottle_po4$po4[i])){
+  if (bottle_po4$po4[i] == "NaN" || bottle_po4$po4[i] == "NAN" || bottle_po4$po4[i] == "nd" ||
+      bottle_po4$po4[i] == "ND" || bottle_po4$po4[i] == "N/A") {
+    bottle_po4$po4[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_po4 <- bottle_po4 %>% na.omit(bottle_po4)
+bottle_po4$po4 <- destring(bottle_po4$po4)
+
+# no2
+bottle_no2 <- bottle %>% select(no2, depth, year, month)
+bottle_no2 %>% group_by(no2) %>% tally()
+
+i = 1
+while (i <= length(bottle_no2$no2)) {
+  if (!is.na(bottle_no2$no2[i])){
+  if (bottle_no2$no2[i] == "NaN" || bottle_no2$no2[i] == "NAN" || bottle_no2$no2[i] == "nd"
+      ||bottle_no2$no2[i] == "N/A") {
+    bottle_no2$no2[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_no2 <- bottle_no2 %>% na.omit(bottle_no2)
+bottle_no2$no2 <- destring(bottle_no2$no2)
+
+# h2s
+bottle_h2s <- bottle %>% select(h2s, depth, year, month)
+bottle_h2s %>% group_by(h2s) %>% tally()
+
+i = 1
+while (i <= length(bottle_h2s$h2s)) {
+  if (!is.na(bottle_h2s$h2s[i])){
+  if (bottle_h2s$h2s[i] == "NaN" || bottle_h2s$h2s[i] == "NAN" || bottle_h2s$h2s[i] == "nd"
+      ||bottle_h2s$h2s[i] == "N/A") {
+    bottle_h2s$h2s[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_h2s <- bottle_h2s %>% na.omit(bottle_h2s)
+bottle_h2s$h2s <- destring(bottle_h2s$h2s)
+
+
+# nh4
+bottle_nh4 <- bottle %>% select(nh4, depth, year, month)
+bottle_nh4 %>% group_by(nh4) %>% tally()
+
+i = 1
+while (i <= length(bottle_nh4$nh4)) {
+  if (!is.na(bottle_nh4$nh4[i])){
+  if (bottle_nh4$nh4[i] == "NaN" || bottle_nh4$nh4[i] == "NAN" || bottle_nh4$nh4[i] == "nd"
+      ||bottle_nh4$nh4[i] == "N/A") {
+    bottle_nh4$nh4[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+
+bottle_nh4 <- bottle_nh4 %>% na.omit(bottle_nh4)
+bottle_nh4$nh4 <- destring(bottle_nh4$nh4)
+
+
+# no3
+bottle_no3 <- bottle %>% select(no3, depth, month)
+bottle_no3 %>% group_by(no3) %>% tally()
+
+i = 1
+while (i <= length(bottle_no3$no3)) {
+  if (!is.na(bottle_no3$no3[i])){
+    if (bottle_no3$no3[i] == "NaN" || bottle_no3$no3[i] == "NAN" || bottle_no3$no3[i] == "nd"
+      || bottle_no3$no3[i] == "N/A" || bottle_no3$no3[i] == "ND") {
+    bottle_no3$no3[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_no3 <- bottle_no3 %>% na.omit(bottle_no3)
+bottle_no3$no3 <- destring(bottle_no3$no3)
+
+
+# n2o
+bottle_n2o <- bottle %>% select(n2o, depth, month)
+bottle_n2o %>% group_by(n2o) %>% tally()
+bottle_n2o <- bottle_n2o %>% na.omit(bottle_n2o)
+
+```
+
+
+```{r}
+# plot Bottle
+ctd_o2_plot <- bottle_ctd_o2 %>% 
+  ggplot(aes(y=depth, x=ctd_o2, colour=month))+
+  geom_line() +
+  scale_color_brewer(palette = "Paired")
+
+
+bottle_ctd_o2 %>% 
+  ggplot(aes(y=depth, x=ctd_o2, group=month))+
+  geom_line(aes(color=month)) +
+  scale_color_brewer(palette = "Paired")
+ 
+
+po4_plot <- bottle_po4 %>% 
+  ggplot(aes(y=depth, x=po4, color=month)) +
+  geom_line() +
+  scale_color_brewer(palette = "Paired")
+
+no2_plot <- bottle_no2 %>% 
+  ggplot(aes(y=depth, x=no2, color=month)) +
+  geom_line() + 
+  scale_color_brewer(palette = "Paired")
+
+h2s_plot <- bottle_h2s %>% 
+  ggplot(aes(y=depth, x=h2s, color=month)) +
+  geom_line() +
+  scale_color_brewer(palette = "Paired")
+
+
+nh4_plot <- bottle_nh4 %>% 
+  ggplot(aes(y=depth, x=nh4, color=month)) +
+  geom_line() + 
+  scale_color_brewer(palette = "Paired")
+
+no3_plot <- bottle_no3 %>% 
+  ggplot(aes(y=depth, x=no3, color=month)) +
+  geom_line() + 
+  scale_color_brewer(palette = "Paired")
+
+n2o_plot <- bottle_n2o %>% 
+  ggplot(aes(y=depth, x=n2o, color=month)) +
+  geom_line() + 
+  scale_color_brewer(palette = "Paired")
+
+```
+
+
+```{r}
+# function for sharing command legend
+grid_arrange_shared_legend <- function(...) {
+    plots <- list(...)
+    g <- ggplotGrob(plots[[1]] + theme(legend.position="bottom"))$grobs
+    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+    lheight <- sum(legend$height)
+    grid.arrange(
+        do.call(arrangeGrob, lapply(plots, function(x)
+            x + theme(legend.position="none"))),
+        legend,
+        ncol = 1,
+        heights = unit.c(unit(1, "npc") - lheight, lheight))
+}
+```
+
+```{r}
+
+# final plot
+grid_arrange_shared_legend(ctd_o2_plot, po4_plot, no2_plot, h2s_plot, nh4_plot,
+                           no3_plot, n2o_plot)
+
+```
+
+```{r}
+# Bottle clean data
+# import data set here
+bottle <- Bottle_Table_1
+bottle <- bottle %>% select(ctd_o2,po4, no2, h2s,nh4, no3, mean_n2o, depth, year, month, day)
+bottle <- bottle %>% mutate(depth_value = paste(depth, "m"))
+bottle <- bottle %>% rename('n2o' = mean_n2o)
+bottle <- bottle %>%  filter(depth %in% c(10,100,120,135,150,165,200))
+bottle$depth <- as.factor(bottle$depth)
+bottle %>% head()
+
+bottle$date <- as.Date(with(bottle, paste(year, month, day,sep="-")), "%Y-%m-%d")
+bottle %>% group_by(depth) %>% tally()
+
+
+
+depth_labeller <- function(variable, value) {
+  return(depth_value[value])
+}
+
+ 
+# ctd_o2
+bottle_ctd_o2 <- bottle %>% select(ctd_o2, depth, year, month, date, depth_value)
+bottle_ctd_o2 %>% group_by(ctd_o2) %>% tally()
+bottle_ctd_o2 <- na.omit(bottle_ctd_o2)
+bottle_ctd_o2
+
+# po4
+bottle_po4 <- bottle %>% select(po4, depth, year, month, date, depth_value)
+bottle_po4 %>% group_by(po4) %>% tally
+
+i = 1
+while (i <= length(bottle_po4$po4)) {
+  if (!is.na(bottle_po4$po4[i])){
+  if (bottle_po4$po4[i] == "NaN" || bottle_po4$po4[i] == "NAN" || bottle_po4$po4[i] == "nd" ||
+      bottle_po4$po4[i] == "ND" || bottle_po4$po4[i] == "N/A") {
+    bottle_po4$po4[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_po4 <- bottle_po4 %>% na.omit(bottle_po4)
+bottle_po4$po4 <- destring(bottle_po4$po4)
+
+# no2
+bottle_no2 <- bottle %>% select(no2, depth, year, month, date,depth_value)
+bottle_no2 %>% group_by(no2) %>% tally()
+
+i = 1
+while (i <= length(bottle_no2$no2)) {
+  if (!is.na(bottle_no2$no2[i])){
+  if (bottle_no2$no2[i] == "NaN" || bottle_no2$no2[i] == "NAN" || bottle_no2$no2[i] == "nd"
+      ||bottle_no2$no2[i] == "N/A") {
+    bottle_no2$no2[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_no2 <- bottle_no2 %>% na.omit(bottle_no2)
+bottle_no2$no2 <- destring(bottle_no2$no2)
+
+# h2s
+bottle_h2s <- bottle %>% select(h2s, depth, year, month, date, depth_value)
+bottle_h2s %>% group_by(h2s) %>% tally()
+
+i = 1
+while (i <= length(bottle_h2s$h2s)) {
+  if (!is.na(bottle_h2s$h2s[i])){
+  if (bottle_h2s$h2s[i] == "NaN" || bottle_h2s$h2s[i] == "NAN" || bottle_h2s$h2s[i] == "nd"
+      ||bottle_h2s$h2s[i] == "N/A") {
+    bottle_h2s$h2s[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_h2s <- bottle_h2s %>% na.omit(bottle_h2s)
+bottle_h2s$h2s <- destring(bottle_h2s$h2s)
+
+
+# nh4
+bottle_nh4 <- bottle %>% select(nh4, depth, year, month, date, depth_value)
+bottle_nh4 %>% group_by(nh4) %>% tally()
+
+i = 1
+while (i <= length(bottle_nh4$nh4)) {
+  if (!is.na(bottle_nh4$nh4[i])){
+  if (bottle_nh4$nh4[i] == "NaN" || bottle_nh4$nh4[i] == "NAN" || bottle_nh4$nh4[i] == "nd"
+      ||bottle_nh4$nh4[i] == "N/A") {
+    bottle_nh4$nh4[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+
+bottle_nh4 <- bottle_nh4 %>% na.omit(bottle_nh4)
+bottle_nh4$nh4 <- destring(bottle_nh4$nh4)
+
+
+# no3
+bottle_no3 <- bottle %>% select(no3, depth, month, date, depth_value)
+bottle_no3 %>% group_by(no3) %>% tally()
+
+i = 1
+while (i <= length(bottle_no3$no3)) {
+  if (!is.na(bottle_no3$no3[i])){
+    if (bottle_no3$no3[i] == "NaN" || bottle_no3$no3[i] == "NAN" || bottle_no3$no3[i] == "nd"
+      || bottle_no3$no3[i] == "N/A" || bottle_no3$no3[i] == "ND") {
+    bottle_no3$no3[i] <- NA
+  }
+  }
+  i <- i + 1
+}
+bottle_no3 <- bottle_no3 %>% na.omit(bottle_no3)
+bottle_no3$no3 <- destring(bottle_no3$no3)
+
+
+# n2o
+bottle_n2o <- bottle %>% select(n2o, depth, month, date, depth_value)
+bottle_n2o %>% group_by(n2o) %>% tally()
+bottle_n2o <- bottle_n2o %>% na.omit(bottle_n2o)
+
+
+```
+
+
+```{r}
+#ctd_o2 
+bottle_ctd_o2 <-  bottle_ctd_o2 %>% filter(depth %in% c(10,100,120,135,150,165,200))
+
+ggplot(bottle_ctd_o2, aes(x=date, y=ctd_o2)) +  
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+  
+```
+
+
+
+```{r}
+# po4
+
+ggplot(bottle_po4, aes(x=date, y=po4)) +  
+  labs(y="po4 (uM)") +
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+```
+
+
+```{r}
+# no2
+
+ggplot(bottle_no2, aes(x=date, y=no2)) +  
+  labs(y="no2 (uM)") +
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+```
+
+
+```{r}
+# h2s
+
+ggplot(bottle_h2s, aes(x=date, y=h2s)) +  
+  labs(y="h2s (uM)") +
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+```
+
+
+```{r}
+# nh4
+
+ggplot(bottle_nh4, aes(x=date, y=nh4)) +  
+  labs(y="nh4 (uM)") +
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+```
+
+
+
+```{r}
+# no3
+
+ggplot(bottle_no3, aes(x=date, y=no3)) + 
+  labs(y="no3 (uM)") +
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+```
+
+```{r}
+# n2o
+
+ggplot(bottle_n2o, aes(x=date, y=n2o)) +  
+  labs(y="n2o (uM)") +
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+```
+
+```{r}
+# CTD clean data
+# import data set here
+ctd <- CTD_Table_1
+ctd %>% head()
+ctd <- ctd %>% rename('Pressure' = `Pressure, Strain Gauge`) %>% rename('Temperature' = `Temperature [ITS-90]`) %>% rename('year' = year)
+ctd <- ctd %>% select(Pressure,Temperature, Salinity, year, month, day)
+ctd$date <- as.Date(with(ctd, paste(year, month, day,sep="-")), "%Y-%m-%d")
+
+
+ctd %>% group_by(date) %>% tally()
+which(is.na(ctd$date))
+ctd[c(which(is.na(ctd$Salinity))),]
+ctd <- na.omit(ctd)
+
+
+```
+
+
+
+```{r}
+pressure_plot <- ctd %>% 
+  ggplot(aes(x=date, y=Pressure)) + geom_line() 
+
+temperature_plot <- ctd %>% 
+  ggplot(aes(x=date, y=Temperature)) + geom_line()
+
+salinity_plot<- ctd %>% 
+  ggplot(aes(x=date, y=Salinity)) + geom_line()
+
+
+```
+
+```{r}
+# final plot
+grid.arrange(pressure_plot, temperature_plot, salinity_plot)
+```
+
+
+```{r}
+ctd <- ctd %>% filter(Pressure %in% c(10,100, 120, 135,150,165, 200)) %>% mutate(depth_value=paste(Pressure, "m"))
+ctd %>% head()
+
+
+depth_10 <- ctd %>% filter(Pressure == 10)
+depth_100 <- ctd %>% filter(Pressure == 100)
+depth_120 <- ctd %>% filter(Pressure == 120)
+depth_135 <- ctd %>% filter(Pressure == 135)
+depth_150 <- ctd %>% filter(Pressure == 150)
+depth_165 <- ctd %>% filter(Pressure == 165)
+depth_200 <- ctd %>% filter(Pressure == 200)
+```
+
+
+```{r}
+
+ggplot(ctd, aes(x=date, y=Temperature)) +
+         labs(y="Temperature (°C)") + 
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+```
+
+
+
+```{r}
+
+ggplot(ctd, aes(x=date, y=Salinity)) +  
+  labs(y = "Salinity (psu)") + 
+geom_line() +
+facet_grid(rows = vars(depth_value)) + 
+theme(strip.text.y=element_text(angle=0))
+
+
+```
+
+```{r}
+l <- list(bottle_ctd_o2, bottle_h2s)
+nms <- c("bottle_ctd_o2", "bottle_h2s")
+names(l) <- nms
+
+
+i = 1
+for (i in 1:length(l)) {
+  print(ggplot(as.data.frame(l[i]), aes(x=as.data.frame(l[i])[,5], y=as.data.frame(l[i])[,1])) + 
+    labs(x = "date", y=paste(colnames(as.data.frame(l[i]))[1], "(uM)")) +
+    geom_line() +
+    facet_grid(rows = vars(as.data.frame(l[i])[,6])) + 
+    theme(strip.text.y=element_text(angle=0)))
+}
+
+a <- list()
+a
+depth <- c(10, 100, 120, 135, 150, 165, 200)
+for (i in 1:length(depth)){
+  a[[i]] <- ctd %>% filter(Pressure == depth[i])
+}
+a
+
+nms <- c(paste("depth_", depth))
+names(a) <- nms
+a
+  
+ 
+```
+
+
+

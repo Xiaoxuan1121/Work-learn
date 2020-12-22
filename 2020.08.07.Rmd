@@ -1,0 +1,530 @@
+---
+title: "Untitled"
+author: "Xiaoxuan Liang"
+date: "07/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+library(MASS)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(taRifx)
+library(grid)
+library(RColorBrewer)
+library(graphics)
+library(zoo)
+library(reshape2)
+library(forecast)
+library(glmnet)
+library(stringi)
+library(vegan)
+data <- all_marker_contig_map_Aug_19_2020
+CTD <- CTD_Table_1
+bottle <- Bottle_Table_1
+```
+
+```{r}
+# clean data
+CTD <- CTD %>% rename(Depth = `Pressure, Strain Gauge`) %>% 
+  rename(Temperature = `Temperature [ITS-90]`) %>% rename(Cruise = 'cruise') %>% rename(Year = 'year') %>% rename(Month = 'month') %>% rename(Day = 'day')
+bottle <- bottle %>% rename(Cruise = 'cruise') %>% rename(Year = 'year') %>% rename(Month = 'month') %>% rename(Day = 'day') %>% rename(Depth = 'depth')
+
+CTD <- CTD %>% select(Cruise, Year, Month, Day, Depth, Temperature, Salinity)
+
+bottle <- bottle %>% select(Cruise, Year, Month, Day, Depth, ctd_o2, no3, no2, mean_n2o, h2s, mean_ch4)
+
+data %>% group_by(Sample) %>% summarize()
+data <- data %>% mutate(Depth = NA) %>% mutate(Cruise = NA)
+# data <- data[-which(data$Sample == "Sample"),]
+
+i = 1
+for (i in which(is.na(data$Depth))) {
+  if (str_detect(data$Sample[i], "10m") || str_detect(data$Sample[i], "10M")) {
+    data$Depth[i] = 10
+  }
+  else if (str_detect(data$Sample[i], "100m") || str_detect(data$Sample[i], "100M")) {
+    data$Depth[i] = 100
+  }
+  else if (str_detect(data$Sample[i], "110m") || str_detect(data$Sample[i], "110M")) {
+    data$Depth[i] = 110
+  }
+  else if (str_detect(data$Sample[i], "120m") || str_detect(data$Sample[i], "120M")) {
+    data$Depth[i] = 120
+  }
+  else if (str_detect(data$Sample[i], "125m") || str_detect(data$Sample[i], "125M")) {
+    data$Depth[i] = 125
+  }
+  else if (str_detect(data$Sample[i], "130m") || str_detect(data$Sample[i], "130M")) {
+    data$Depth[i] = 130
+  }
+  else if (str_detect(data$Sample[i], "135m") || str_detect(data$Sample[i], "135M")) {
+    data$Depth[i] = 135
+  }
+  else if (str_detect(data$Sample[i], "150m") || str_detect(data$Sample[i], "150M")) {
+    data$Depth[i] = 150
+  }
+  else if (str_detect(data$Sample[i], "165m") || str_detect(data$Sample[i], "165M")) {
+    data$Depth[i] = 165
+  }
+  else if (str_detect(data$Sample[i], "200m") || str_detect(data$Sample[i], "200M")) {
+    data$Depth[i] = 200
+  }
+  i <- i + 1
+}
+
+i = 1
+for (i in which(is.na(data$Cruise))) {
+  if (str_detect(data$Sample[i], "SI_034")) {
+    data$Cruise[i] = 34
+  }
+  else if (str_detect(data$Sample[i], "SI_036") || str_detect(data$Sample[i], "S2_036")) {
+    data$Cruise[i] = 36
+  }
+  else if (str_detect(data$Sample[i], "S2_037") || str_detect(data$Sample[i], "S3_037")
+           || str_detect(data$Sample[i], "S4_037")) {
+    data$Cruise[i] = 37
+  }
+  else if (str_detect(data$Sample[i], "SI_039")) {
+    data$Cruise[i] = 39
+  }
+  else if (str_detect(data$Sample[i], "SI042")) {
+    data$Cruise[i] = 42
+  }
+  else if (str_detect(data$Sample[i], "SI_047")) {
+    data$Cruise[i] =  47
+  }
+  else if (str_detect(data$Sample[i], "SI048")) {
+    data$Cruise[i] = 48
+  }
+  else if (str_detect(data$Sample[i], "SI_053")) {
+    data$Cruise[i] = 53
+  }
+  else if (str_detect(data$Sample[i], "SI_054")) {
+    data$Cruise[i] = 54
+  }
+  else if (str_detect(data$Sample[i], "SI_060")) {
+    data$Cruise[i] = 60
+  }
+  else if (str_detect(data$Sample[i], "SI_072") || str_detect(data$Sample[i], "SI072")) {
+    data$Cruise[i] = 72
+  }
+  else if (str_detect(data$Sample[i], "SI073")) {
+    data$Cruise[i] = 73
+  }
+  else if (str_detect(data$Sample[i], "SI074")) {
+    data$Cruise[i] = 74
+  }
+  else if (str_detect(data$Sample[i], "SI_075") || str_detect(data$Sample[i], "SI075")) {
+    data$Cruise[i] = 75
+  }
+  else if (str_detect(data$Sample[i], "SI_106")) {
+    data$Cruise[i] = 106
+  }
+  else if (str_detect(data$Sample[i], "SI_112")) {
+    data$Cruise[i] = 112
+  }
+  else if (str_detect(data$Sample[i], "SI_118")) {
+    data$Cruise[i] = 118
+  }
+  else if (str_detect(data$Sample[i], "SI_122")) {
+    data$Cruise[i] = 122
+  }
+  else if (str_detect(data$Sample[i], "SI_123")) {
+    data$Cruise[i] = 123
+  }
+  else if (str_detect(data$Sample[i], "SI_124")) {
+    data$Cruise[i] = 124
+  }
+}
+which(is.na(data$Depth))
+which(is.na(data$Cruise))
+
+
+```
+
+
+```{r}
+CTD %>% filter(Cruise == 73)
+bottle %>% filter(Cruise == 73)
+full_data <- CTD %>% inner_join(bottle) %>% inner_join(data)
+full_data <- full_data[which(!is.na(full_data$Abundance)),]
+full_data$Date <- as.Date(with(full_data, paste(Year, Month, Day,sep="-")), "%Y-%m-%d")
+full_data
+
+```
+
+
+```{r}
+full_data <- full_data %>% select(Cruise,Depth,Date, Temperature, Salinity, ctd_o2, no3, no2, mean_n2o, h2s, mean_ch4, Query, Marker, Taxonomy, Abundance)
+full_data
+
+taxonomy <- as.vector((full_data %>% group_by(Taxonomy) %>% summarize())$Taxonomy)
+marker <- as.vector((full_data %>% group_by(Marker) %>% summarise())$Marker)
+
+
+taxonomy_group <- list()
+for (i in 1:length(taxonomy)) {
+  taxonomy_group[[i]] <- full_data %>% filter(Taxonomy == taxonomy[i])
+}
+```
+
+
+
+
+
+```{r}
+taxonomy_vs_marker <- matrix(nrow= length(taxonomy), ncol = length(marker))
+colnames(taxonomy_vs_marker) <- marker
+rownames(taxonomy_vs_marker) <- taxonomy
+
+
+
+for (i in 1:length(taxonomy)) {
+  type <- (taxonomy_group[[i]] %>% select(Marker) %>% unique())$Marker
+  for (j in 1:length(type)){
+    taxonomy_vs_marker[i, match(type[j], marker)] <- nrow(taxonomy_group[[i]] %>% subset(Marker %in% type[j]))
+  }
+}
+as.data.frame(taxonomy_vs_marker)
+
+
+```
+
+```{r}
+full_data %>% group_by(Taxonomy) %>% tally()
+taxonomy[which(str_detect(taxonomy, "r__Root"))]
+sum((full_data %>% filter(Taxonomy %in% c("r__Root", "r__Root;", "Root")) %>% group_by(Taxonomy) %>% tally())$n)  #6267
+
+
+
+taxonomy[which(str_detect(taxonomy, "r__Root; d__Bacteria"))]
+bacterias <- full_data %>% filter(Taxonomy == "r__Root; d__Bacteria") %>% group_by(Taxonomy) %>% tally() #2205
+
+archaeas <- taxonomy[which(str_detect(taxonomy, "Archaea"))]
+sum((full_data %>% filter(Taxonomy %in% archaeas) %>% group_by(Taxonomy) %>% tally())$n)  #2414
+
+ratio <- (6267+2205+2414)/nrow(full_data)  #0.1415641
+
+
+
+
+
+```
+
+```{r}
+i = 1
+j = 1
+k = 1
+record <- list()
+
+for (i in 1:length(taxonomy)){
+  for (j in 1:length(marker)) {
+    if (!is.na(m[i,j])) {
+      full_model <- glm(Abundance~Temperature+Salinity+ctd_o2+no3+no2+mean_n2o+h2s+mean_ch4, data=taxonomy_group[[i]] %>% subset(Marker%in% marker[j]))
+      if (AIC(full_model)!=-Inf) {
+        backward <- stepAIC(full_model, direction = "backward", trace=FALSE)
+        record[[k]] <- backward$coefficients
+        k <- k + 1
+      }
+      else{
+        lasso.cv <- cv.glmnet(x=data.matrix(full_data[,3:10]), y=data.matrix(full_data[,14]), alpha=1, nfolds=3)
+        record[[k]] <- coefficients(lasso.cv, s=lasso.cv$lambda.min)
+        k <- k + 1
+      }
+    }
+  }
+}
+record[[1]]
+full_data.pca <- prcomp(full_data[, c(3:10, 14)],
+                 center = TRUE,
+                 scale. = TRUE)
+print(full_data.pca)
+summary(full_data.pca )
+
+
+```
+
+```{r}
+
+full_data <- full_data %>% mutate(Domain = "unclassified") %>% mutate(Phylum = "unclassified") %>% mutate(Class = "unclassified") %>% mutate(Order = "unclassified") %>% mutate(Family = "unclassified") %>% mutate(Genus = "unclassified") %>% mutate(Species = "unclassified") 
+
+
+location <- lapply(strsplit(taxonomy, ''), function(x) which(x == ';'))
+substr(taxonomy[3], location[[3]][1], location[[3]][2])
+
+
+i <- 1
+j <- 1
+domain <- c()
+for (i in 1:length(taxonomy)) {
+  str <- substr(taxonomy[i], location[[i]][1]+2, location[[i]][2]-1)
+  if (!(str %in% domain)) {
+    domain[j] <- str
+    j <- j + 1
+  }
+}
+domain
+
+rank_type <- list()
+for (i in 1:6){
+  k <- 1
+  rank_type[[i]] <- NA
+  for (j in 1:length(taxonomy)) {
+    str <- substr(taxonomy[j], location[[j]][i]+5, location[[j]][i+1]-1)
+    if (!(str %in% rank_type[[i]])){
+      rank_type[[i]][[k]] <- str
+      k <- k + 1
+    }
+  }
+}
+rank_type[[2]]
+
+rank_type[[7]] <- NA
+k <- 1
+for (i in 1:length(taxonomy)){
+  if (!is.na(nchar(taxonomy[i])) && !is.na(location[[i]][7]+2) && nchar(taxonomy[i]) > location[[i]][7]+2){
+  str <- substr(taxonomy[i], location[[i]][7]+5, nchar(taxonomy[i]))
+  if (!(str %in% rank_type[[7]])){
+      rank_type[[7]][k] <- str
+      k <- k + 1
+    }
+  }
+}
+
+```
+
+
+```{r}
+# remove later
+
+full_data <- full_data %>% mutate(Root = "unclassified") %>% mutate(Domain = "unclassified") %>% mutate(Phylum = "unclassified") %>% mutate(Class = "unclassified") %>% mutate(Order = "unclassified") %>% mutate(Family = "unclassified") %>% mutate(Genus = "unclassified") %>% mutate(Species = "unclassified") 
+
+which(full_data$Taxonomy == "Root")
+full_data[87,]
+for (i in 1:nrow(full_data)) {
+  if (full_data$Taxonomy[i] == "Root"){
+    full_data$Root[i] <- "Root"
+  }
+  else {
+  full_data$Root[i] <- substr(full_data$Taxonomy[i], 4, 7)
+  }
+}
+
+for (j in 1:nrow(full_data)){
+  str <- taxonomy[which(taxonomy ==toString(full_data[j, 15]))]
+  if (str != "r__Root" && str != "r__Root;" && str != "Root"){
+  location <- lapply(strsplit(str, ''), function(x) which(x == ';'))
+  k <- 1
+  for (i in 18:(18+length(location[[1]])-1)) {
+    if (!is.na(location[[1]][k]+2) && !is.na(location[[1]][k+1])){
+    full_data[j,i] <- substr(str,location[[1]][k]+5, location[[1]][k+1]-1)
+    k <- k + 1
+    }
+    else if (!is.na(nchar(str)) || !is.na(location[[1]][k]+2) || nchar(str) > location[[1]][k]+2){
+  full_data[j, i]  <- substr(str, location[[1]][k]+5, nchar(str))
+    }
+  }
+  }
+}
+
+
+
+```
+
+
+
+
+```{r}
+# glmnet.lasso <- glmnet(x=data.matrix(full_data[,3:10]) , y=data.matrix(full_data[,14]), alpha=1)
+# lasso.cv <- cv.glmnet(x=data.matrix(full_data[,3:10]), y=data.matrix(full_data[,14]),alpha=1,nfolds=3)
+# coefficients(lasso.cv, s = lasso.cv$lambda.min)
+
+
+```
+
+
+
+
+
+```{r}
+
+data <- full_data %>% select(Taxonomy,Species, Genus, Family, Order, Class, Phylum, Domain)
+species <- data %>% group_by(Species) %>% summarize()
+species <- as.vector(species$Species)
+species <- species[-length(species)]
+data <- data %>% filter(Species != "unclassified")
+
+taxa2dist(as.data.frame(data[1:30, ]))
+
+# rerun data
+my_taxa2dist(as.data.frame(data[1:30, ]), check = TRUE, wtd = TRUE)
+
+data_1 <- as.data.frame(full_data %>% select(Taxonomy, Abundance))
+taxonomy <- data_1 %>% group_by(Taxonomy) %>% summarise()
+taxonomy <- as.vector(taxonomy$Taxonomy)
+
+taxonomy_group<- list()
+div <- c()
+i <- 1
+for (i in 1:length(taxonomy)) {
+  taxonomy_group[[i]] <- data_1 %>% filter(Taxonomy == taxonomy[i])
+  div[i] <- diversity(taxonomy_group[[i]][-1],MARGIN = 2 , index = "shannon")
+}
+
+div
+
+cruise_group <- list()
+data_2 <- as.data.frame(full_data %>% select(Cruise, Abundance))
+for (i in 1:length(cruise$Cruise)) {
+  cruise_group[[i]] <- data_2 %>% filter(Cruise == cruise$Cruise[i])
+  div[i] <- diversity(cruise_group[[i]][-1], MARGIN = 2, index = "shannon")
+}
+div
+
+cruise <- as.vector((full_data %>% group_by(Cruise) %>% summarize())$Cruise)
+cruise_group <- list()
+data_2 <- as.data.frame(full_data %>% select(Cruise, Abundance))
+div <- c()
+for (i in 1:length(cruise)) {
+  cruise_group[[i]] <- data_2 %>% filter(Cruise == cruise[i])
+  div[i] <- diversity(cruise_group[[i]][-1], MARGIN = 2, index = "shannon")
+}
+div
+
+
+
+```
+
+
+```{r}
+data_aic <- as.data.frame(full_data %>% select(Cruise,Depth, Temperature, Salinity, ctd_o2, no3, no2, mean_n2o, h2s, mean_ch4, Query, Marker, Taxonomy, Abundance))
+sd_abundance <- sd(data_aic$Abundance)
+sd_features <- apply(data_aic[,c(3:10, 14)], 2, sd)
+
+data_aic[,c(3:10, 14)] <- scale(data_aic[, c(3:10, 14)])
+
+taxonomy_group <- list()
+for (i in 1:length(taxonomy)) {
+  taxonomy_group[[i]] <- data_aic %>% filter(Taxonomy == taxonomy[[i]])
+}
+
+record <- list()
+k <- 1
+for (i in 1:length(taxonomy)) {
+  full_model <- glm(Abundance~Temperature+Salinity+ctd_o2+no3+no2+mean_n2o+h2s+mean_ch4, data=taxonomy_group[[i]])
+  if (AIC(full_model) != -Inf) {
+  backward <- stepAIC(full_model, direction = "backward", trace=FALSE)
+  record[[k]] <- backward$coefficients
+  k <- k + 1
+  }
+  else if (nrow(taxonomy_group[[i]]) >2) {
+        lasso.cv <- cv.glmnet(x=data.matrix(taxonomy_group[[i]][,3:10]), y=data.matrix(taxonomy_group[[i]][,14]), alpha=1, nfolds=3)
+        record[[k]] <- coefficients(lasso.cv, s=lasso.cv$lambda.min)
+        k <- k + 1
+  }
+  else {
+    record[[k]] <- full_model$coefficients
+    k <- k + 1
+  }
+}
+
+length(record)
+record[[1]]
+
+
+backward$formula[3]
+i <- 1
+for (i in 1:length(record)){
+  dimnames(record[[i]])
+}
+
+
+```
+
+```{r}
+data_phylum <- as.data.frame(full_data %>% select(Cruise,Depth, Temperature, Salinity, ctd_o2, no3, no2, mean_n2o, h2s, mean_ch4, Query, Marker, Taxonomy, Domain, Phylum, Abundance, Date))
+sd_abundance <- sd(data_phylum$Abundance)
+sd_features <- apply(data_phylum[,c(3:10, 16)], 2, sd)
+data_phylum[,c(3:10, 16)] <- scale(data_phylum[,c(3:10, 16)])
+
+data_phylum %>% group_by(Domain, Phylum) %>% tally()
+dm_phyl <- as.matrix(data_phylum %>% group_by(Domain, Phylum) %>% summarize())
+
+
+phylum_group <- list()
+for (i in 1:nrow(dm_phyl)){
+  phylum_group[[i]] <- data_phylum %>% filter(Domain == dm_phyl[i,1] & Phylum == dm_phyl[i,2])
+}
+
+record <- list()
+k <- 1
+for (i in 1:(length(phylum_group)-1)) {
+  full_model <- glm(Abundance~Temperature+Salinity+ctd_o2+no3+no2+mean_n2o+h2s+mean_ch4, data=phylum_group[[i]])
+  if (AIC(full_model) != -Inf) {
+  backward <- stepAIC(full_model, direction = "backward", trace=FALSE)
+  record[[k]] <- backward$coefficients
+  k <- k + 1
+  }
+  else if (nrow(phylum_group[[i]]) >2) {
+        lasso.cv <- cv.glmnet(x=data.matrix(phylum_group[[i]][,3:10]), y=data.matrix(phylum_group[[i]][,14]), alpha=1, nfolds=3)
+        record[[k]] <- coefficients(lasso.cv, s=lasso.cv$lambda.min)
+        k <- k + 1
+  }
+  else {
+    record[[k]] <- full_model$coefficients
+    k <- k + 1
+  }
+}
+record
+
+```
+
+
+
+```{r}
+phylum_group[[1]] %>% group_by(Marker) %>% tally()
+marker <- full_data %>% group_by(Marker) %>% summarize()
+marker <- as.vector(marker$Marker)
+
+record <- list(list())
+
+for (i in 1:length(phylum_group)){
+  for (j in 1:length(phylum_group[[i]]$Marker)){
+    
+  }
+}
+
+record
+
+```
+
+```{r}
+
+cruise <- as.vector((full_data %>% group_by(Cruise) %>% summarize())$Cruise)
+cruise_group <- list()
+data_2 <- as.data.frame(full_data %>% select(Cruise, Abundance))
+div <- c()
+for (i in 1:length(cruise)) {
+  cruise_group[[i]] <- data_2 %>% filter(Cruise == cruise[i])
+  div[i] <- diversity(cruise_group[[i]][-1], MARGIN = 2, index = "shannon")
+}
+div
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
